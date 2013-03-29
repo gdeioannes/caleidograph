@@ -1,0 +1,288 @@
+
+<html>
+<style>
+body{
+	font-family:Verdana, Geneva, sans-serif;
+	font-size:10px;
+	background:#080808;
+	color:#FFF;
+}
+
+#info{
+	color:#FFF;
+	font-weight:bold;
+}
+
+input{
+	color:#FFF;
+	background:#080808;
+	border:none;
+	width:60;
+	font-size:10px;
+	text-align:right;
+}
+
+.menu{
+	width:400px;
+	float:left;
+	position:static;
+}
+
+canvas{
+	float:left;
+	position:absolute;
+	z-index:-1;
+}
+
+#outValues{
+	width:300px;
+}
+#inValues{
+	width:300px;
+}
+
+button{
+	background:none;
+	font-size:10px;
+	background:#FFF;
+	color:#000;
+}
+
+</style>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>CaleidoGraph</title>
+</head>
+<canvas id="canvas"></canvas>
+<div class="menu">
+	<div>PRESS ANY KEY TO REDRAW</div>
+	<div id="info">CALEIDOGRAPH</div>
+    <div>OUT VALUES:<input id="outValues" type="text" width="250px" onFocus="activeFocus();" onBlur="deActiveFocus();"></div>
+    <div>IN VALUES:<input id="inValues" type="text" width="250px" onFocus="activeFocus();" onBlur="deActiveFocus();" onChange="inValueFromText();" value="PASTE OUT VALUES"></div>
+    <div>Draw Speed:<input id="inputgenerateSpeed" type="number"  value="100" max="1000"></div>
+    <div>Center Radius:<input id="inputCenterRadius" type="number"  value="100"></div>
+    <div>Inner Radius:<input id="inputInnesRadius" type="number"  value="40"></div>
+    <div>Outer radius speed:<input id="inputSpeed1" type="number"  value="0.1" max="1" min="0.0001" step="0.00001"></div>
+    <div>Center radius speed:<input id="inputSpeed2" type="number"  value="0.01" max="1" min="0.0001" step="0.00001"></div>
+    <div>Max Radius:<input id="inputMaxRadius" type="number"  value="500" ></div>
+    <div>Min Radius:<input id="inputMinRadius" type="number"  value="0" ></div>
+    <div>Brus Radius:<input id="inputBrushRadius" type="number"  value="0.7" min="0" step="0.01"></div>
+    <div>Brus alpha:<input id="inputBrushAlpha" type="number"  value="0.5" min="0" max="1" step="0.01"></div>
+    <div>R:<input id="r" type="number"  value="255" max="255" min="0" step="1">NoiseR:<input id="noiseR" type="number"  value="0" max="255" min="0" step="0.1"></div>
+    <div>G:<input id="g" type="number"  value="255" max="255" min="0" step="1">NoiseG:<input id="noiseG" type="number"  value="0" max="255" min="0" step="0.1"></div>
+    <div>B:<input id="b" type="number"  value="255" max="255" min="0" step="1">NoiseB:<input id="noiseB" type="number"  value="0" max="255" min="0" step="0.1"></div>
+    <div>Noise:<input id="inputNoise" type="number"  value="0" max="100" min="0" step="0.01"></div>
+    <div><button type="button" onClick="saveImg();">SAVE PNG</button></div>
+    <div>IN VALUE EXAMPLES:</div>
+    <div>108,16,-3,300,0,0.08323,0.0055,255,19,20,0.7,0.27,0,0,0,0</div>
+    <div>100,100,40,800,1,0.09996,0.01002,40,50,255,1.6,0.04,0,0,0,0</div>
+</div>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38381950-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+<script type="text/javascript" src="canvas2image.js"></script>
+<script>
+	var canvas=document.getElementById('canvas');
+	var context=canvas.getContext('2d');
+
+	canvas.width=window.document.width-20;
+	canvas.height=window.document.height-20;
+	var a=0;
+	var a2=0;
+	var generateSpeed=100;
+	
+	centerx=0;
+	centery=0;
+
+	var animate=setInterval(drawStage,1);
+	
+	var centerRad=100;
+	var innerRad=50;
+	var vec=1;
+	var speed1=0.1;
+	var speed2=0.01;
+	var frameRate=30;
+	var r=255;
+	var g=255;
+	var b=255;
+	var maxRad=500;
+	var minRad=0;
+	var brushRadius=0.7;
+	var brushAlpha=0.5;
+	var inOutFocus=false;
+	var noise=0;
+	var noiser=0;
+	var noiseg=0;
+	var nouseb=0;
+	
+	window.addEventListener("keydown", changeValues);
+	
+	function saveImg(){
+		Canvas2Image.saveAsPNG(canvas);  // will prompt the user to save the image as PNG.  
+	}
+	
+	function activeFocus(){
+		inOutFocus=true;
+		document.getElementById('inValues').value="";
+	}
+	
+	function deActiveFocus(){
+		inOutFocus=false;
+		document.getElementById('inValues').value="PASTE OUT VALUES";
+	}
+	
+	changeValues();
+	
+	function changeValues(){
+		if(inOutFocus==false){
+			clearStage();
+			clearInterval(animate);
+			animate=setInterval(drawStage,1);
+			generateSpeed=parseFloat((document.getElementById("inputgenerateSpeed").value));
+			centerRad=parseFloat((document.getElementById("inputCenterRadius").value));
+			innerRad=parseFloat((document.getElementById("inputInnesRadius").value));
+			maxRad=parseFloat((document.getElementById("inputMaxRadius").value));
+			minRad=parseFloat((document.getElementById("inputMinRadius").value));
+			speed1=parseFloat((document.getElementById("inputSpeed1").value));
+			speed2=parseFloat((document.getElementById("inputSpeed2").value));
+			r=parseInt((document.getElementById("r").value));
+			g=parseInt((document.getElementById("g").value));
+			b=parseInt((document.getElementById("b").value));
+			brushRadius=parseFloat((document.getElementById("inputBrushRadius").value));
+			brushAlpha=parseFloat((document.getElementById("inputBrushAlpha").value));
+			noise=parseFloat((document.getElementById("inputNoise").value));
+			noiser=parseInt((document.getElementById("noiseR").value));
+			noiseg=parseInt((document.getElementById("noiseG").value));
+			noiseb=parseInt((document.getElementById("noiseB").value));
+			
+			document.getElementById("outValues").value=""+generateSpeed+","+centerRad+","+innerRad+","+maxRad+","+minRad+","+speed1+","+speed2+","+r+","+g+","+b+","+brushRadius+","+brushAlpha+","+noise+","+noiser+","+noiseg+","+noiseb ;
+		}
+	}
+	
+	function inValueFromText(){
+		var myInValues=document.getElementById('inValues').value;
+		myInValues=myInValues.split(",");
+		
+			
+		clearStage();
+		clearInterval(animate);
+		animate=setInterval(drawStage,1);
+		generateSpeed=parseFloat(myInValues[0]);
+		centerRad=parseFloat(myInValues[1]);
+		innerRad=parseFloat(myInValues[2]);
+		maxRad=parseFloat(myInValues[3]);
+		minRad=parseFloat(myInValues[4]);
+		speed1=parseFloat(myInValues[5]);
+		speed2=parseFloat(myInValues[6]);
+		r=parseInt(myInValues[7]);
+		g=parseInt(myInValues[8]);
+		b=parseInt(myInValues[9]);
+		brushRadius=parseFloat(myInValues[10]);
+		brushAlpha=parseFloat(myInValues[11]);
+		noise=parseFloat(myInValues[12]);
+		noiser=parseFloat(myInValues[13]);
+		noiseg=parseFloat(myInValues[14]);
+		noiseb=parseFloat(myInValues[15]);
+		
+		
+		document.getElementById("inputgenerateSpeed").value=generateSpeed;
+		document.getElementById("inputCenterRadius").value=centerRad;
+		document.getElementById("inputInnesRadius").value=innerRad;
+		document.getElementById("inputMaxRadius").value=maxRad;
+		document.getElementById("inputMinRadius").value=minRad;
+		document.getElementById("inputSpeed1").value=speed1;
+		document.getElementById("inputSpeed2").value=speed2;
+		document.getElementById("r").value=r;
+		document.getElementById("g").value=g;
+		document.getElementById("b").value=b;
+		document.getElementById("inputBrushRadius").value=brushRadius;
+		document.getElementById("inputBrushAlpha").value=brushAlpha;
+		document.getElementById("inputNoise").value=noise;
+		document.getElementById("noiseR").value=noiser;
+		document.getElementById("noiseG").value=noiseg;
+		document.getElementById("noiseB").value=noiseb;
+		
+		document.getElementById("outValues").value=""+generateSpeed+","+centerRad+","+innerRad+","+maxRad+","+minRad+","+speed1+","+speed2+","+r+","+g+","+b+","+brushRadius+","+brushAlpha+","+noise +","+noiser +","+noiseg +","+noiseb  ;
+		
+		document.getElementById('inValues').value="PASTE OUT VALUES";
+		
+	}
+	
+	function clearStage(){
+			/*context.beginPath();				
+			context.fillStyle="#080808";
+			context.fillRect(0,0,canvas.width,canvas.height);
+			context.fill();	
+			context.closePath();*/
+			canvas.width=canvas.width;
+			vec=1;
+			a=0;
+			a2=0;
+			
+	}
+	
+	window.addEventListener("mousemove",traceMouse);
+
+	
+	function drawStage(){
+			
+		for(var i=0;i<generateSpeed;i++){	
+			a+=speed1;
+			a2+=speed2;
+			
+			/*context.beginPath();				
+			context.fillStyle="rgba(0,0,0,0.5)";
+			context.fillRect(0,0,canvas.width,canvas.height);
+			context.fill();	
+			context.closePath();
+			*/
+			centerx=canvas.width/2+Math.cos(a2)*centerRad;
+			centery=canvas.height/2+Math.sin(a2)*centerRad;
+			
+			x=centerx+Math.cos(a)*innerRad;
+			y=centery+Math.sin(a)*innerRad;
+	
+			context.beginPath();		
+			context.fillStyle="rgba("+Math.round(r+Math.random()*noiser)+","+Math.round(g+Math.random()*noiseg)+","+Math.round(b+Math.random()*noiseb)+","+brushAlpha+")";
+			context.arc(x+(Math.random()*noise),y+(Math.random()*noise),brushRadius,0,Math.PI*2,false);
+			context.fill();
+			context.closePath();
+			
+	
+		
+			document.getElementById('info').innerHTML="Processing: x:"+Math.round(x)+"y:"+Math.round(y)+"a:"+Math.round(a)+"a2:"+Math.round(a2);
+			
+			if(a2>maxRad){
+				vec*=-1;
+			}
+			
+			if(a2<minRad){
+				vec*=-1;
+			}
+			centerRad+=0.005*vec;
+			if(a2>maxRad){
+				document.getElementById('info').innerHTML="FINITO!!!";
+				clearInterval(animate);
+				// save canvas image as data url (png format by default)
+			}
+	
+			
+		}
+		}
+	
+
+	
+</script>
+<body>
+</body>
+</html>
