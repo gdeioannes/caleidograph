@@ -1,5 +1,7 @@
-
 <html>
+
+<head>
+
 <style>
 body{
 	font-family:Verdana, Geneva, sans-serif;
@@ -49,7 +51,6 @@ button{
 }
 
 </style>
-<head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>CaleidoGraph</title>
 </head>
@@ -92,6 +93,7 @@ button{
 </script>
 <script type="text/javascript" src="canvas2image.js"></script>
 <script>
+window.onload=function(){
 	var canvas=document.getElementById('canvas');
 	var context=canvas.getContext('2d');
 
@@ -280,7 +282,7 @@ button{
 		}
 		}
 	
-
+}
 	
 </script>
 <body>
